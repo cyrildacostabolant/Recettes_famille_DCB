@@ -32,6 +32,18 @@ const RecipeDetailView: React.FC = () => {
     }
   };
 
+  const getContrastColor = (hexColor: string) => {
+    if (!hexColor) return '#ffffff';
+    // Remove hash if present
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    // Formula for perceived brightness
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 150 ? '#000000' : '#ffffff';
+  };
+
   const handleDelete = async () => {
     if (!confirm("Voulez-vous vraiment supprimer cette recette ?")) return;
     const { error } = await supabase.from('recipes').delete().eq('id', id);
@@ -58,10 +70,12 @@ const RecipeDetailView: React.FC = () => {
     // 1. Bandeau (2cm ≈ 75px)
     const bandHeight = 75;
     const mainColor = categoryInfo?.color || '#f97316';
+    const textColor = getContrastColor(mainColor);
+    
     ctx.fillStyle = mainColor;
     ctx.fillRect(0, 0, width, bandHeight);
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = textColor;
     ctx.font = 'bold 32px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(recipe.title.toUpperCase(), width / 2, bandHeight / 2 + 10);
@@ -159,6 +173,7 @@ const RecipeDetailView: React.FC = () => {
   if (!recipe) return null;
 
   const categoryColor = categoryInfo?.color || '#f97316';
+  const badgeTextColor = getContrastColor(categoryColor);
 
   return (
     <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 animate-slideUp">
@@ -176,7 +191,7 @@ const RecipeDetailView: React.FC = () => {
 
       <div className="p-8 space-y-8">
         <header className="space-y-2 text-center">
-          <span className="px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-white shadow-sm" style={{ backgroundColor: categoryColor }}>
+          <span className="px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm" style={{ backgroundColor: categoryColor, color: badgeTextColor }}>
             {recipe.category}
           </span>
           <h1 className="text-4xl font-black text-gray-900">{recipe.title}</h1>

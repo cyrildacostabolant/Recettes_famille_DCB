@@ -27,6 +27,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
  *   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
  * );
  * 
+ * -- FIX POUR L'ERREUR "recipes_category_check" :
+ * -- Cette commande supprime la restriction qui empêche d'utiliser de nouvelles catégories
+ * ALTER TABLE recipes DROP CONSTRAINT IF EXISTS recipes_category_check;
+ * 
  * -- 2. RLS pour les tables
  * ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Accès public catégories" ON categories FOR ALL USING (true) WITH CHECK (true);
@@ -34,30 +38,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
  * ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Accès public recettes" ON recipes FOR ALL USING (true) WITH CHECK (true);
  * 
- * -- 3. CONFIGURATION DU STORAGE (IMPORTANT POUR L'IMAGE)
- * -- Assurez-vous d'abord d'avoir créé le bucket 'recipe-images' dans l'interface Supabase.
+ * -- 3. CONFIGURATION DU STORAGE
+ * -- Créez le bucket 'recipe-images' en mode PUBLIC dans l'interface Supabase.
  * 
- * -- Politique pour permettre l'insertion (Upload) publique
- * CREATE POLICY "Allow public upload" 
- * ON storage.objects FOR INSERT 
- * TO public 
- * WITH CHECK (bucket_id = 'recipe-images');
- * 
- * -- Politique pour permettre la lecture (Select) publique
- * CREATE POLICY "Allow public read" 
- * ON storage.objects FOR SELECT 
- * TO public 
- * USING (bucket_id = 'recipe-images');
- * 
- * -- Politique pour permettre la mise à jour (Update) publique
- * CREATE POLICY "Allow public update" 
- * ON storage.objects FOR UPDATE 
- * TO public 
- * USING (bucket_id = 'recipe-images');
- * 
- * -- Politique pour permettre la suppression (Delete) publique
- * CREATE POLICY "Allow public delete" 
- * ON storage.objects FOR DELETE 
- * TO public 
- * USING (bucket_id = 'recipe-images');
+ * CREATE POLICY "Allow public upload" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'recipe-images');
+ * CREATE POLICY "Allow public read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'recipe-images');
+ * CREATE POLICY "Allow public update" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'recipe-images');
+ * CREATE POLICY "Allow public delete" ON storage.objects FOR DELETE TO public USING (bucket_id = 'recipe-images');
  */

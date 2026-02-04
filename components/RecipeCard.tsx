@@ -19,6 +19,18 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
     fetchColor();
   }, [recipe.category]);
 
+  const getContrastColor = (hexColor: string) => {
+    if (!hexColor) return '#ffffff';
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 150 ? '#000000' : '#ffffff';
+  };
+
+  const textColor = getContrastColor(color);
+
   return (
     <Link 
       to={`/recipe/${recipe.id}`}
@@ -27,7 +39,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
       <div className="relative h-48 overflow-hidden">
         <img src={recipe.image_url || `https://picsum.photos/seed/${recipe.id}/400/300`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         <div className="absolute top-3 left-3">
-          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style={{ backgroundColor: color }}>
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm" style={{ backgroundColor: color, color: textColor }}>
             {recipe.category}
           </span>
         </div>

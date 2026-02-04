@@ -79,10 +79,7 @@ const AddRecipeView: React.FC = () => {
           .upload(fileName, imageFile);
 
         if (uploadError) {
-          if (uploadError.message.includes('not found')) {
-            throw new Error("Le dossier 'recipe-images' n'existe pas dans votre Storage Supabase. Veuillez créer un bucket 'recipe-images' en mode PUBLIC.");
-          }
-          throw new Error(`Erreur lors de l'envoi de l'image : ${uploadError.message}`);
+          throw new Error(`Erreur Image : ${uploadError.message}`);
         }
 
         const { data: publicUrlData } = supabase.storage
@@ -103,6 +100,9 @@ const AddRecipeView: React.FC = () => {
         });
 
       if (insertError) {
+        if (insertError.message.includes('check constraint')) {
+          throw new Error("Erreur de base de données : Une restriction empêche d'utiliser cette catégorie. Veuillez exécuter la commande SQL 'ALTER TABLE recipes DROP CONSTRAINT IF EXISTS recipes_category_check;' dans votre console Supabase.");
+        }
         throw new Error(`Erreur Base de données : ${insertError.message}`);
       }
 
