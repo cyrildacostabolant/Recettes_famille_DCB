@@ -41,11 +41,10 @@ const RecipeDetailView: React.FC = () => {
     return yiq >= 150 ? '#000000' : '#ffffff';
   };
 
-  // Fonction centrale de génération du document (Canvas)
   const generateCanvas = async (): Promise<HTMLCanvasElement | null> => {
     if (!recipe) return null;
 
-    const width = 794; // A4 96 DPI
+    const width = 794; 
     const height = 1123;
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -53,11 +52,9 @@ const RecipeDetailView: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // Fond
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
-    // 1. Bandeau
     const bandHeight = 75;
     const mainColor = categoryInfo?.color || '#f97316';
     const textColor = getContrastColor(mainColor);
@@ -70,7 +67,6 @@ const RecipeDetailView: React.FC = () => {
     ctx.textAlign = 'center';
     ctx.fillText(recipe.title.toUpperCase(), width / 2, bandHeight / 2 + 10);
 
-    // 2. Image
     let nextY = bandHeight + 40;
     if (recipe.image_url) {
       const img = new Image();
@@ -96,13 +92,11 @@ const RecipeDetailView: React.FC = () => {
       }
     }
 
-    // 3. Colonnes
     const col1X = 50;
     const col1Width = (width - 140) * 0.30;
     const col2X = col1X + col1Width + 40;
     const col2Width = (width - 140) * 0.70;
 
-    // Ingrédients
     ctx.textAlign = 'left';
     ctx.fillStyle = '#333333';
     ctx.font = 'bold 20px Inter, sans-serif';
@@ -111,7 +105,6 @@ const RecipeDetailView: React.FC = () => {
     ctx.font = '15px Inter, sans-serif';
     let ingY = nextY + 35;
     recipe.ingredients.forEach(ing => {
-      // Wrap ingredients if too long
       const words = ('• ' + ing).split(' ');
       let line = '';
       words.forEach(word => {
@@ -128,7 +121,6 @@ const RecipeDetailView: React.FC = () => {
       ingY += 28;
     });
 
-    // Préparation
     ctx.font = 'bold 20px Inter, sans-serif';
     ctx.fillText('PRÉPARATION', col2X, nextY);
     
@@ -152,7 +144,6 @@ const RecipeDetailView: React.FC = () => {
       stepY += 35;
     });
 
-    // Separateur vertical
     const finalContentY = Math.max(ingY, stepY);
     ctx.strokeStyle = mainColor;
     ctx.lineWidth = 1;
@@ -170,7 +161,6 @@ const RecipeDetailView: React.FC = () => {
 
     const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
     
-    // Création d'une iframe invisible pour l'impression
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -188,9 +178,21 @@ const RecipeDetailView: React.FC = () => {
           <head>
             <title>Impression - ${recipe?.title}</title>
             <style>
-              @page { margin: 0; size: auto; }
-              body { margin: 0; padding: 0; }
-              img { width: 100%; height: auto; display: block; }
+              @page { margin: 0; size: A4 portrait; }
+              html, body { 
+                margin: 0; 
+                padding: 0; 
+                width: 100%; 
+                height: 100%; 
+                overflow: hidden; 
+                background: white;
+              }
+              img { 
+                width: 100%; 
+                height: 100%; 
+                object-fit: contain;
+                display: block; 
+              }
             </style>
           </head>
           <body>
@@ -200,16 +202,14 @@ const RecipeDetailView: React.FC = () => {
       `);
       doc.close();
 
-      // On attend que l'image soit chargée dans l'iframe avant de lancer l'impression
       const img = doc.querySelector('img');
       if (img) {
         img.onload = () => {
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
-          // Nettoyage après un délai pour laisser le temps au dialogue de s'ouvrir
           setTimeout(() => {
             document.body.removeChild(iframe);
-          }, 1000);
+          }, 2000);
         };
       }
     }
