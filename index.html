@@ -12,6 +12,16 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f9fafb;
+            margin: 0;
+        }
+        #root:empty::before {
+            content: 'Chargement de votre carnet de recettes...';
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #9ca3af;
+            font-size: 0.875rem;
         }
     </style>
 <script type="importmap">
@@ -21,12 +31,15 @@
     "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.94.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react-dom": "https://esm.sh/react-dom@^19.2.4"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
+    <!-- Script principal ajouté pour lancer l'application -->
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>
