@@ -26,6 +26,16 @@ const Home: React.FC = () => {
     setLoading(false);
   };
 
+  const getContrastColor = (hexColor: string) => {
+    if (!hexColor) return '#ffffff';
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 150 ? '#000000' : '#ffffff';
+  };
+
   const filteredRecipes = recipes.filter(r => {
     const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = activeCategory === 'Tous' || r.category === activeCategory;
@@ -53,24 +63,39 @@ const Home: React.FC = () => {
         <div className="flex justify-center flex-wrap gap-2">
           <button
             onClick={() => setActiveCategory('Tous')}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeCategory === 'Tous' ? 'bg-orange-500 text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}
+            className={`px-6 py-2 rounded-full text-sm font-bold transition-all border-2 ${
+              activeCategory === 'Tous' 
+                ? 'shadow-lg shadow-orange-200 scale-105 border-orange-600' 
+                : 'bg-white text-orange-500 border-orange-500 hover:bg-orange-50'
+            }`}
+            style={{ 
+              backgroundColor: activeCategory === 'Tous' ? '#f97316' : undefined,
+              color: activeCategory === 'Tous' ? '#ffffff' : undefined,
+            }}
           >
             Tous
           </button>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.name)}
-              className={`px-6 py-2 rounded-full text-sm font-bold transition-all border`}
-              style={{ 
-                backgroundColor: activeCategory === cat.name ? cat.color : '#ffffff',
-                color: activeCategory === cat.name ? '#ffffff' : '#9ca3af',
-                borderColor: activeCategory === cat.name ? cat.color : '#f3f4f6'
-              }}
-            >
-              {cat.name}
-            </button>
-          ))}
+          {categories.map(cat => {
+            const isActive = activeCategory === cat.name;
+            const contrastText = getContrastColor(cat.color);
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.name)}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all border-2 ${
+                  isActive ? 'shadow-xl scale-110 z-10' : 'opacity-85 hover:opacity-100 scale-100'
+                }`}
+                style={{ 
+                  backgroundColor: cat.color,
+                  color: contrastText,
+                  borderColor: isActive ? contrastText : 'transparent',
+                  boxShadow: isActive ? `0 10px 20px -5px ${cat.color}88` : 'none'
+                }}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -80,7 +105,14 @@ const Home: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRecipes.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)}
+          {filteredRecipes.length > 0 ? (
+            filteredRecipes.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)
+          ) : (
+            <div className="col-span-full py-12 text-center">
+              <div className="text-4xl mb-4">🔍</div>
+              <p className="text-gray-400 font-medium">Aucune recette trouvée pour cette recherche.</p>
+            </div>
+          )}
         </div>
       )}
     </div>
