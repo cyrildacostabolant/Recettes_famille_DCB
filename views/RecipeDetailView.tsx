@@ -22,7 +22,6 @@ const RecipeDetailView: React.FC = () => {
       if (error) throw error;
       setRecipe(data);
 
-      // Fetch color info
       const { data: catData } = await supabase.from('categories').select('*').eq('name', data.category).single();
       if (catData) setCategoryInfo(catData);
     } catch (error) {
@@ -42,35 +41,23 @@ const RecipeDetailView: React.FC = () => {
     return yiq >= 150 ? '#000000' : '#ffffff';
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Voulez-vous vraiment supprimer cette recette ?")) return;
-    const { error } = await supabase.from('recipes').delete().eq('id', id);
-    if (!error) navigate('/');
-    else alert("Erreur lors de la suppression");
-  };
+  // Fonction centrale de génération du document (Canvas)
+  const generateCanvas = async (): Promise<HTMLCanvasElement | null> => {
+    if (!recipe) return null;
 
-  const handlePrint = () => {
-    // On force le focus sur la fenêtre et on attend un micro-délai pour déclencher l'impression
-    window.focus();
-    setTimeout(() => {
-      window.print();
-    }, 100);
-  };
-
-  const exportJPG = async () => {
-    if (!recipe) return;
-
-    const width = 794; 
+    const width = 794; // A4 96 DPI
     const height = 1123;
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
 
+    // Fond
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
+    // 1. Bandeau
     const bandHeight = 75;
     const mainColor = categoryInfo?.color || '#f97316';
     const textColor = getContrastColor(mainColor);
@@ -83,6 +70,7 @@ const RecipeDetailView: React.FC = () => {
     ctx.textAlign = 'center';
     ctx.fillText(recipe.title.toUpperCase(), width / 2, bandHeight / 2 + 10);
 
+    // 2. Image
     let nextY = bandHeight + 40;
     if (recipe.image_url) {
       const img = new Image();
@@ -91,12 +79,12 @@ const RecipeDetailView: React.FC = () => {
       try {
         await new Promise((resolve, reject) => {
           img.onload = resolve;
-          img.onerror = reject;
+          img.onerror = () => reject(new Error("Image load failed"));
         });
 
-        const displayHeight = 190;
+        const displayHeight = 220;
         const ratio = img.width / img.height;
-        const displayWidth = displayHeight * ratio;
+        const displayWidth = Math.min(width - 100, displayHeight * ratio);
         const xPos = (width - displayWidth) / 2;
 
         ctx.fillStyle = '#000000';
@@ -108,30 +96,46 @@ const RecipeDetailView: React.FC = () => {
       }
     }
 
+    // 3. Colonnes
     const col1X = 50;
-    const col1Width = (width - 100) * 0.25;
+    const col1Width = (width - 140) * 0.30;
     const col2X = col1X + col1Width + 40;
-    const col2Width = (width - 100) * 0.75 - 40;
+    const col2Width = (width - 140) * 0.70;
 
+    // Ingrédients
     ctx.textAlign = 'left';
     ctx.fillStyle = '#333333';
-    ctx.font = 'bold 18px Inter, sans-serif';
+    ctx.font = 'bold 20px Inter, sans-serif';
     ctx.fillText('INGRÉDIENTS', col1X, nextY);
     
-    ctx.font = '14px Inter, sans-serif';
-    let ingY = nextY + 30;
+    ctx.font = '15px Inter, sans-serif';
+    let ingY = nextY + 35;
     recipe.ingredients.forEach(ing => {
-      ctx.fillText('• ' + ing, col1X, ingY, col1Width);
-      ingY += 22;
+      // Wrap ingredients if too long
+      const words = ('• ' + ing).split(' ');
+      let line = '';
+      words.forEach(word => {
+        let testLine = line + word + ' ';
+        if (ctx.measureText(testLine).width > col1Width) {
+          ctx.fillText(line, col1X, ingY);
+          line = word + ' ';
+          ingY += 22;
+        } else {
+          line = testLine;
+        }
+      });
+      ctx.fillText(line, col1X, ingY);
+      ingY += 28;
     });
 
-    ctx.font = 'bold 18px Inter, sans-serif';
+    // Préparation
+    ctx.font = 'bold 20px Inter, sans-serif';
     ctx.fillText('PRÉPARATION', col2X, nextY);
     
-    ctx.font = '14px Inter, sans-serif';
-    let stepY = nextY + 30;
+    ctx.font = '15px Inter, sans-serif';
+    let stepY = nextY + 35;
     recipe.instructions.forEach((step, idx) => {
-      const text = `Etape ${idx + 1} : ${step}`;
+      const text = `${idx + 1}. ${step}`;
       const words = text.split(' ');
       let line = '';
       words.forEach(word => {
@@ -139,7 +143,7 @@ const RecipeDetailView: React.FC = () => {
         if (ctx.measureText(testLine).width > col2Width) {
           ctx.fillText(line, col2X, stepY);
           line = word + ' ';
-          stepY += 20;
+          stepY += 22;
         } else {
           line = testLine;
         }
@@ -148,19 +152,85 @@ const RecipeDetailView: React.FC = () => {
       stepY += 35;
     });
 
+    // Separateur vertical
     const finalContentY = Math.max(ingY, stepY);
     ctx.strokeStyle = mainColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(col1X + col1Width + 20, nextY);
+    ctx.moveTo(col1X + col1Width + 20, nextY - 10);
     ctx.lineTo(col1X + col1Width + 20, finalContentY);
     ctx.stroke();
+
+    return canvas;
+  };
+
+  const handlePrint = async () => {
+    const canvas = await generateCanvas();
+    if (!canvas) return;
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+    
+    // Création d'une iframe invisible pour l'impression
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(`
+        <html>
+          <head>
+            <title>Impression - ${recipe?.title}</title>
+            <style>
+              @page { margin: 0; size: auto; }
+              body { margin: 0; padding: 0; }
+              img { width: 100%; height: auto; display: block; }
+            </style>
+          </head>
+          <body>
+            <img src="${dataUrl}" />
+          </body>
+        </html>
+      `);
+      doc.close();
+
+      // On attend que l'image soit chargée dans l'iframe avant de lancer l'impression
+      const img = doc.querySelector('img');
+      if (img) {
+        img.onload = () => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          // Nettoyage après un délai pour laisser le temps au dialogue de s'ouvrir
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        };
+      }
+    }
+  };
+
+  const exportJPG = async () => {
+    const canvas = await generateCanvas();
+    if (!canvas || !recipe) return;
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     const link = document.createElement('a');
     link.download = `Recette-${recipe.title}.jpg`;
     link.href = dataUrl;
     link.click();
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Voulez-vous vraiment supprimer cette recette ?")) return;
+    const { error } = await supabase.from('recipes').delete().eq('id', id);
+    if (!error) navigate('/');
+    else alert("Erreur lors de la suppression");
   };
 
   if (loading) return <div className="h-64 flex items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>;
@@ -177,8 +247,8 @@ const RecipeDetailView: React.FC = () => {
           <button type="button" onClick={() => navigate(-1)} className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"><i className="fas fa-arrow-left"></i></button>
         </div>
         <div className="absolute top-4 right-4 flex space-x-2 no-print">
-          <button type="button" onClick={handlePrint} title="Imprimer la recette" className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-colors cursor-pointer"><i className="fas fa-print"></i></button>
-          <button type="button" onClick={exportJPG} title="Exporter JPG" className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors cursor-pointer"><i className="fas fa-file-image"></i></button>
+          <button type="button" onClick={handlePrint} title="Imprimer la fiche (Format A4)" className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-colors cursor-pointer"><i className="fas fa-print"></i></button>
+          <button type="button" onClick={exportJPG} title="Télécharger JPG" className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors cursor-pointer"><i className="fas fa-file-image"></i></button>
           <Link to={`/recipe/edit/${recipe.id}`} className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-orange-600 transition-colors"><i className="fas fa-edit"></i></Link>
           <button type="button" onClick={handleDelete} className="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors cursor-pointer"><i className="fas fa-trash"></i></button>
         </div>
