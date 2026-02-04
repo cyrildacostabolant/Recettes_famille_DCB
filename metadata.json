@@ -1,0 +1,7 @@
+{
+  "name": "Recettes famille DCB - Votre Carnet de Cuisine",
+  "description": "Une application de partage de recettes moderne et minimaliste utilisant Supabase pour le stockage des données et des images.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
