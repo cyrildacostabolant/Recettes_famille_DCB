@@ -1,11 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Category } from '../types';
 
 const AddRecipeView: React.FC = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [title, setTitle] = useState('');
@@ -44,14 +47,18 @@ const AddRecipeView: React.FC = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = (file: File) => {
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,9 +107,6 @@ const AddRecipeView: React.FC = () => {
         });
 
       if (insertError) {
-        if (insertError.message.includes('check constraint')) {
-          throw new Error("Erreur de base de données : Une restriction empêche d'utiliser cette catégorie. Veuillez exécuter la commande SQL 'ALTER TABLE recipes DROP CONSTRAINT IF EXISTS recipes_category_check;' dans votre console Supabase.");
-        }
         throw new Error(`Erreur Base de données : ${insertError.message}`);
       }
 
@@ -150,22 +154,54 @@ const AddRecipeView: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-bold text-gray-700 uppercase">Photo (Optionnel)</label>
-          <div className={`relative h-48 rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${imagePreview ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}>
+          <label className="block text-sm font-bold text-gray-700 uppercase">Photo de la recette</label>
+          <div className={`relative min-h-[12rem] rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-all ${imagePreview ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}>
             {imagePreview ? (
-              <>
-                <img src={imagePreview} className="w-full h-full object-cover" />
-                <button type="button" onClick={() => {setImageFile(null); setImagePreview(null);}} className="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg"><i className="fas fa-times"></i></button>
-              </>
+              <div className="w-full h-full relative group">
+                <img src={imagePreview} className="w-full h-64 object-cover" />
+                <button 
+                  type="button" 
+                  onClick={() => {setImageFile(null); setImagePreview(null);}} 
+                  className="absolute top-4 right-4 bg-red-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
             ) : (
-              <div className="text-center p-4">
-                <i className="fas fa-camera text-3xl text-gray-300 mb-2"></i>
-                <p className="text-sm text-gray-400 font-medium">Ajouter une photo</p>
-                <p className="text-[10px] text-gray-300 uppercase mt-1">JPG, PNG jusqu'à 5Mo</p>
-                <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageChange} />
+              <div className="p-8 w-full flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                >
+                  <i className="fas fa-images text-2xl text-gray-400 group-hover:text-orange-500 mb-2"></i>
+                  <span className="text-sm font-bold text-gray-600">Galerie</span>
+                </button>
+                
+                <div className="hidden sm:block text-gray-300 font-bold">OU</div>
+
+                <button 
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                >
+                  <i className="fas fa-camera text-2xl text-gray-400 group-hover:text-orange-500 mb-2"></i>
+                  <span className="text-sm font-bold text-gray-600">Appareil Photo</span>
+                </button>
+                
+                {/* Inputs cachés */}
+                <input 
+                  type="file" ref={fileInputRef} accept="image/*" className="hidden" 
+                  onChange={handleImageChange} 
+                />
+                <input 
+                  type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" 
+                  onChange={handleImageChange} 
+                />
               </div>
             )}
           </div>
+          <p className="text-[10px] text-gray-400 uppercase text-center mt-2 tracking-widest">Formats JPG, PNG acceptés</p>
         </div>
 
         <div className="space-y-4">

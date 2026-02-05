@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Category } from '../types';
@@ -7,6 +7,9 @@ import { Category } from '../types';
 const EditRecipeView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   
@@ -45,6 +48,18 @@ const EditRecipeView: React.FC = () => {
     }
   };
 
+  const processFile = (file: File) => {
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
   const handleFieldChange = (idx: number, val: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter(prev => {
       const copy = [...prev];
@@ -67,7 +82,6 @@ const EditRecipeView: React.FC = () => {
     try {
       let imageUrl = existingImageUrl;
 
-      // Gestion de l'upload si une nouvelle image est sélectionnée
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -138,27 +152,39 @@ const EditRecipeView: React.FC = () => {
         
         <div className="space-y-2">
           <label className="block text-sm font-bold text-gray-700 uppercase">Photo de la recette</label>
-          <div className="relative h-48 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center overflow-hidden bg-gray-50">
+          <div className={`relative min-h-[12rem] border-2 border-dashed rounded-2xl flex items-center justify-center overflow-hidden transition-all ${imagePreview ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-gray-50'}`}>
             {imagePreview ? (
-              <>
-                <img src={imagePreview} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                   <p className="text-white font-bold text-sm bg-black/50 px-3 py-1 rounded-full">Changer la photo</p>
+              <div className="w-full h-full relative group">
+                <img src={imagePreview} className="w-full h-64 object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-4">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="bg-white text-orange-500 px-4 py-2 rounded-xl font-bold text-sm shadow-xl">Changer (Galerie)</button>
+                    <button type="button" onClick={() => cameraInputRef.current?.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl">Prendre photo</button>
+                  </div>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="text-center p-4">
-                <i className="fas fa-camera text-3xl text-gray-300 mb-2"></i>
-                <p className="text-xs text-gray-400">Cliquez pour modifier la photo</p>
+              <div className="p-8 w-full flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                >
+                  <i className="fas fa-images text-2xl text-gray-400 group-hover:text-orange-500 mb-2"></i>
+                  <span className="text-sm font-bold text-gray-600">Galerie</span>
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 w-full sm:w-auto flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                >
+                  <i className="fas fa-camera text-2xl text-gray-400 group-hover:text-orange-500 mb-2"></i>
+                  <span className="text-sm font-bold text-gray-600">Photo</span>
+                </button>
               </div>
             )}
-            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => {
-              const f = e.target.files?.[0];
-              if (f) {
-                setImageFile(f);
-                setImagePreview(URL.createObjectURL(f));
-              }
-            }} />
+            <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageChange} />
+            <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
           </div>
         </div>
 
