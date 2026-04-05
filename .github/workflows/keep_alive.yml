@@ -2,8 +2,8 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    - cron: '0 5 * * *'
-  workflow_dispatch: 
+    - cron: '0 5 * * *' # Tous les jours à 5h00 UTC
+  workflow_dispatch: # Pour tester manuellement
 
 jobs:
   ping_supabase:
@@ -11,6 +11,6 @@ jobs:
     steps:
       - name: Ping Recipes Table
         run: |
-          curl -i -X GET "https://zqxgeqdenndhtvktmabs.supabase.co/rest/v1/recipes?select=id&limit=1" \
+          curl -i -X GET "https://zqxqeqdenndhtvktmabs.supabase.co/rest/v1/recipes?select=id&limit=1" \
           -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
