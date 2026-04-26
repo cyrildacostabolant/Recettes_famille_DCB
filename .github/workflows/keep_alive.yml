@@ -11,6 +11,6 @@ jobs:
     steps:
       - name: Ping Recipes Table
         run: |
-          curl -i -X GET "https://zqxqeqdenndhtvktmabs.supabase.co/rest/v1/recipes?select=id&limit=1" \
+          curl --fail -i -X GET "https://zqxqeqdenndhtvktmabs.supabase.co/rest/v1/recipes?select=id&limit=1" \
           -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
